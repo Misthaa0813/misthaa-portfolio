@@ -360,14 +360,15 @@ final List<String> galleryImages = const [
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (isReady)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+
+                    if (isReady)
+                      SizedBox(
+                        width: double.infinity,
+                        child: Stack(
+                          alignment: Alignment.center,
                           children: [
                             IconButton(
-                              tooltip: controller.value.isPlaying
-                                  ? 'Pause'
-                                  : 'Play',
+                              tooltip: controller.value.isPlaying ? 'Pause' : 'Play',
                               onPressed: () {
                                 setDialogState(() {
                                   if (controller.value.isPlaying) {
@@ -384,26 +385,31 @@ final List<String> galleryImages = const [
                                     : Icons.play_circle_fill,
                               ),
                             ),
-                            IconButton(
-                              tooltip: controller.value.volume > 0
-                                  ? 'Sound off'
-                                  : 'Sound on',
-                              onPressed: () {
-                                setDialogState(() {
-                                  controller.setVolume(
-                                    controller.value.volume > 0 ? 0 : 1,
-                                  );
-                                });
-                              },
-                              iconSize: 28,
-                              icon: Icon(
-                                controller.value.volume > 0
-                                    ? Icons.volume_up
-                                    : Icons.volume_off,
+                            Positioned(
+                              right: 0,
+                              child: IconButton(
+                                tooltip: controller.value.volume > 0
+                                    ? 'Sound off'
+                                    : 'Sound on',
+                                onPressed: () {
+                                  setDialogState(() {
+                                    controller.setVolume(
+                                      controller.value.volume > 0 ? 0 : 1,
+                                    );
+                                  });
+                                },
+                                iconSize: 28,
+                                icon: Icon(
+                                  controller.value.volume > 0
+                                      ? Icons.volume_up
+                                      : Icons.volume_off,
+                                ),
                               ),
                             ),
                           ],
                         ),
+                      ),
+
                     ],
                   ),
                 ),
@@ -1035,23 +1041,36 @@ class _PerformanceCard extends StatelessWidget {
                 left: 18,
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), shape: BoxShape.circle),
-                  child: const Icon(Icons.play_arrow_rounded, size: 30, color: Colors.white),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    size: 30,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-              Positioned(
-                left: 18,
-                right: 18,
-                bottom: 20,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 7),
-                    const Text('Tap to watch', style: TextStyle(color: Color.fromARGB(179, 231, 152, 47), fontSize: 11)),
-                  ],
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    size: 38,
+                    color: Colors.white,
+                  ),
                 ),
               ),
+
             ],
           ),
         ),
