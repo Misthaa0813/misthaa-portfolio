@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Verify logo asset
+        run: |
+          git ls-files | grep -i '^assets/logo'
+          ls -la assets/logo.png
+          grep -n 'assets/logo' pubspec.yaml
+
       - name: Build Flutter web
         run: flutter build web --release --base-href "/misthaa-portfolio/"
 
