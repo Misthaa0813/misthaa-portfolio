@@ -238,23 +238,43 @@ final List<String> galleryImages = const [
 
   Future<void> _openVideo(BuildContext context, VideoItem item) async {
     final controller = VideoPlayerController.asset(item.video);
+    var initializationStarted = false;
+    var hasError = false;
+
     try {
-      await controller.initialize();
-      controller.setLooping(true);
-      if (!context.mounted) {
-        await controller.dispose();
-        return;
-      }
       await showDialog<void>(
         context: context,
         barrierColor: Colors.black87,
-        builder: (dialogContext) => Dialog(
-          backgroundColor: const Color(0xFF090B12),
-          insetPadding: const EdgeInsets.all(18),
-          child: StatefulBuilder(
-            builder: (dialogContext, setDialogState) {
-              return ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900, maxHeight: 650),
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            if (!initializationStarted) {
+              initializationStarted = true;
+              controller.initialize().then((_) {
+                controller.setLooping(true);
+                if (dialogContext.mounted) {
+                  setDialogState(() {});
+                }
+              }).catchError((Object error) {
+                hasError = true;
+                if (dialogContext.mounted) {
+                  setDialogState(() {});
+                }
+              });
+            }
+
+            final isReady = controller.value.isInitialized;
+            final aspectRatio = isReady && controller.value.aspectRatio > 0
+                ? controller.value.aspectRatio
+                : 16 / 9;
+
+            return Dialog(
+              backgroundColor: const Color(0xFF090B12),
+              insetPadding: const EdgeInsets.all(18),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 900,
+                  maxHeight: 650,
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Column(
@@ -262,7 +282,14 @@ final List<String> galleryImages = const [
                     children: [
                       Row(
                         children: [
-                          Expanded(child: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold))),
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                           IconButton(
                             tooltip: 'Close',
                             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -272,55 +299,131 @@ final List<String> galleryImages = const [
                       ),
                       Flexible(
                         child: AspectRatio(
-                          aspectRatio: controller.value.aspectRatio,
-                          child: VideoPlayer(controller),
+                          aspectRatio: aspectRatio,
+                          child: Container(
+                            width: double.infinity,
+                            color: Colors.black,
+                            child: !isReady
+                                ? Center(
+                                    child: hasError
+                                        ? const Padding(
+                                            padding: EdgeInsets.all(24),
+                                            child: Text(
+                                              'Unable to load this video. Please try again.',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          )
+                                        : Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              const SizedBox(
+                                                width: 42,
+                                                height: 42,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  color: goldColor,
+                                                  strokeWidth: 3,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 20),
+                                              const Text(
+                                                'Tuning the music...',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                  letterSpacing: 1,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 16,
+                                                ),
+                                                child: Text(
+                                                  'Please wait while the performance loads',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: mutedColor,
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                  )
+                                : VideoPlayer(controller),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            tooltip: controller.value.isPlaying ? 'Pause' : 'Play',
-                            onPressed: () {
-                              setDialogState(() {
-                                controller.value.isPlaying ? controller.pause() : controller.play();
-                              });
-                            },
-                            iconSize: 32,
-                            icon: Icon(controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill),
-                          ),
-                          IconButton(
-                            tooltip: controller.value.volume > 0 ? 'Sound off' : 'Sound on',
-                            onPressed: () {
-                              setDialogState(() {
-                                controller.setVolume(controller.value.volume > 0 ? 0 : 1);
-                              });
-                            },
-                            iconSize: 28,
-                            icon: Icon(controller.value.volume > 0 ? Icons.volume_up : Icons.volume_off),
-                          ),
-                        ],
-                      ),
+                      if (isReady)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              tooltip: controller.value.isPlaying
+                                  ? 'Pause'
+                                  : 'Play',
+                              onPressed: () {
+                                setDialogState(() {
+                                  if (controller.value.isPlaying) {
+                                    controller.pause();
+                                  } else {
+                                    controller.play();
+                                  }
+                                });
+                              },
+                              iconSize: 32,
+                              icon: Icon(
+                                controller.value.isPlaying
+                                    ? Icons.pause_circle_filled
+                                    : Icons.play_circle_fill,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: controller.value.volume > 0
+                                  ? 'Sound off'
+                                  : 'Sound on',
+                              onPressed: () {
+                                setDialogState(() {
+                                  controller.setVolume(
+                                    controller.value.volume > 0 ? 0 : 1,
+                                  );
+                                });
+                              },
+                              iconSize: 28,
+                              icon: Icon(
+                                controller.value.volume > 0
+                                    ? Icons.volume_up
+                                    : Icons.volume_off,
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       );
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not play this video. Try converting it to MP4 (H.264).')),
+          const SnackBar(
+            content: Text('Could not open this video. Please try again.'),
+          ),
         );
       }
     } finally {
       await controller.dispose();
     }
   }
-
 
 
   Widget _buildHero(BuildContext context, bool isMobile) {
@@ -353,6 +456,7 @@ final List<String> galleryImages = const [
                       'assets/logo.png',
                       width: 120,
                       height: 120,
+                      cacheWidth: 240,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -371,6 +475,7 @@ final List<String> galleryImages = const [
                     'assets/logo.png',
                     width: 220,
                     height: 260,
+                    cacheWidth: 440,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -644,6 +749,7 @@ final List<String> galleryImages = const [
                           children: [
                             Image.asset(
                               galleryImages[index],
+                              cacheWidth: 500,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
@@ -901,6 +1007,7 @@ class _PerformanceCard extends StatelessWidget {
             children: [
               Image.asset(
                 item.cover,
+                cacheWidth: 500,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   decoration: BoxDecoration(
